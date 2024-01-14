@@ -2,6 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <LittleFS.h>
 
+#define RELAY_PIN 15
 #define PAIR_PIN 4
 #define IN_LED 2
 
@@ -15,9 +16,7 @@ IPAddress local_ip(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-const int no_pins = 4;
-int pin_button[no_pins] = {15,13,14,5};
-int button[no_pins] = {1,1,1,1};
+int button_Status = 1;
 int start_mode = 0;
 int in_led_status = 0;
 unsigned long int change_millis = millis();
@@ -27,13 +26,10 @@ WiFiServer server(80);
 void setup()
 {
     Serial.begin(115200);
-    for(int i=0;i<no_pins;i++){
-    pinMode(pin_button[i], OUTPUT);
-    digitalWrite(pin_button[i],HIGH);
-    }
+    pinMode(RELAY_PIN, OUTPUT);
     pinMode(IN_LED, OUTPUT);
-    digitalWrite(IN_LED, !LOW);
-
+    digitalWrite(IN_LED, LOW);
+    digitalWrite(RELAY_PIN, HIGH);
     pinMode(PAIR_PIN, INPUT_PULLUP);
     start_mode = digitalRead(PAIR_PIN);
     if (!LittleFS.begin())
@@ -185,37 +181,31 @@ void loop()
             Serial.println("New client connected");
             // Read the request from the client
             String request = client.readStringUntil('$');
-            Serial.println(request);
-            if (request.equals("refresh"))
+            int recieved = request.toInt();
+            if (recieved == 256)
             {
-                client.print(WiFi.localIP());
-                client.print(":");
-                client.print(identification);
-                client.print(":");
-                client.println(no_pins);
+                client.println(WiFi.localIP());
             }
-            if (request.startsWith("Change_State-Switch"))
+            if (recieved == 1000)
             {
-                int number = request.substring(19,21).toInt()-1;
-                Serial.println(number);
-                if (button[number] == 1)
+                client.println("Identification");
+            }
+            if (recieved == 1)
+            {
+                if (button_Status == 1)
                 {
-                    button[number] = 0;
-                    digitalWrite(pin_button[number], LOW);
+                    button_Status = 0;
+                    digitalWrite(RELAY_PIN, LOW);
                 }
                 else
                 {
-                    button[number] = 1;
-                    digitalWrite(pin_button[number], HIGH);
+                    button_Status = 1;
+                    digitalWrite(RELAY_PIN, HIGH);
                 }
             }
-            if (request.equals("Sync"))
+            if (recieved == 3)
             {
-                for(int i =0 ;i<no_pins;i++){
-                client.print(button[i]);
-                }
-                client.println();
-
+                client.println(button_Status);
             }
             client.stop();
             Serial.println("Client disconnected");
