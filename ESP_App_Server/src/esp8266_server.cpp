@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESPAsyncWebServer.h>
-#include <ArduinoJson.h>
 #include <LittleFS.h>
 
 #define PAIR_PIN 4
@@ -31,7 +30,7 @@ AsyncWebServer server(80);
 void setup()
 {
   Serial.begin(115200);
-  for (int i = 0; i < 6; i++)
+  for (int i = 0; i < no_pins; i++)
   {
     pinMode(pin_button[i], OUTPUT);
     digitalWrite(pin_button[i], HIGH);
@@ -62,11 +61,8 @@ void setup()
       String req_type = request->header("req_type");
       Serial.println(req_type);
       if(req_type == "Pairing Data"){
-          DynamicJsonDocument sending(1024);
-          sending["message"] = "Data Saved Successfully";
-          String response;
-          serializeJson(sending, response);
-          request->send(200, "application/json", response);
+          String response = "Data Saved Successfully";
+          request->send(200, "text/plain", response);
           identification = request->header("Identification");;
           wifi_ssid = request->header("Wifi_SSID");;
           wifi_password = request->header("Wifi_Password");;
@@ -81,11 +77,8 @@ void setup()
           filesavepassword.close();
       }
       if(req_type == "Connection Check"){
-        DynamicJsonDocument sending(1024);
-        sending["message"] = "Connection Successful";
-        String response;
-        serializeJson(sending, response);
-        request->send(200, "application/json", response);
+        String response = "Connection Successful";
+        request->send(200, "text/plain", response);
       } 
     });
     server.begin();
@@ -136,21 +129,19 @@ void setup()
               String req_type = request->header("req_type");
               Serial.println(req_type);
               if(req_type == "sync"){
-                  DynamicJsonDocument sending(1024);
-                  sending["Switch_States"] = button;
-                  String response;
-                  serializeJson(sending, response);
-                  request->send(200, "application/json", response);
+                  String response = "";
+                  for (int i = 0 ; i<no_pins;i++){
+                    response += button[i];
+                  }
+                  request->send(200, "text/plain", response);
               }
               if(req_type == "refresh"){
-                DynamicJsonDocument sending(1024);
-                  sending["IP_Address"] = WiFi.localIP();
-                  String response;
-                  serializeJson(sending, response);
-                  request->send(200, "application/json", response);
+                  String response = WiFi.localIP().toString();
+                  request->send(200, "text/plain", response);
               } 
               if(req_type == "Change_State"){
-                int number = request->header("Switch Number");
+                String nos = request->header("Switch Number");
+                int number = nos.toInt();
                 if (button[number] == 1)
                 {
                     button[number] = 0;

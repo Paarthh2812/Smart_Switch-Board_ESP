@@ -150,16 +150,17 @@ void setup()
                   request->send(200, "application/json", response);
               } 
               if(req_type == "Change_State"){
-                int number = request->header("Switch Number");
-                if (button[number] == 1)
+                String number = request->header("Switch Number");
+                int no = number.toInt();
+                if (button[no] == 1)
                 {
-                    button[number] = 0;
-                    digitalWrite(pin_button[number], LOW);
+                    button[no] = 0;
+                    digitalWrite(pin_button[no], LOW);
                 }
                 else
                 {
-                    button[number] = 1;
-                    digitalWrite(pin_button[number], HIGH);
+                    button[no] = 1;
+                    digitalWrite(pin_button[no], HIGH);
                 }
               }});
           server.begin();
