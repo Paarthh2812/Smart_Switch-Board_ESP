@@ -3,8 +3,8 @@
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 
-#define PAIR_PIN 4
-#define IN_LED 2
+#define PAIR_PIN 12
+#define IN_LED 16
 
 const char *self_ssid = "Smart Switch/Board";
 const char *self_password = "123456789";
@@ -16,9 +16,9 @@ IPAddress local_ip(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-const int no_pins = 4;
-int pin_button[no_pins] = {15, 13, 14, 5};
-int button[no_pins] = {1, 1, 1, 1};
+const int no_pins = 1;
+int pin_button[no_pins] = {5};
+int button[no_pins] = {1};
 int start_mode = 0;
 int in_led_status = 0;
 unsigned long int change_millis = millis();
@@ -31,7 +31,7 @@ void setup()
   for (int i = 0; i < no_pins; i++)
   {
     pinMode(pin_button[i], OUTPUT);
-    digitalWrite(pin_button[i], HIGH);
+    digitalWrite(pin_button[i], LOW);
   }
   pinMode(IN_LED, OUTPUT);
   digitalWrite(IN_LED, LOW);
@@ -73,6 +73,7 @@ void setup()
         File filesavepassword = LittleFS.open("/Password.txt", "w");
         filesavepassword.print(wifi_password);
         filesavepassword.close();
+        ESP.restart();
       }
       if(req_type == "Connection Check"){
         String response = "Connection Successful";
@@ -82,6 +83,7 @@ void setup()
   }
   else
   {
+    digitalWrite(pin_button[0], HIGH);
     File fileIdentity = LittleFS.open("/Identity.txt", "r");
     if (!fileIdentity)
     {
@@ -123,6 +125,7 @@ void setup()
     Serial.println(WiFi.localIP());
     server.on("/Apprequests", HTTP_POST, [](AsyncWebServerRequest *request){
       String req_type = request->header("req_type");
+      in_led_status = 1;
       Serial.println(req_type);
       if(req_type == "sync"){
         String response = "";
@@ -161,8 +164,22 @@ void setup()
     server.begin();
   }
 }
-
+ 
 void loop()
 {
-  // Nothing to do here
+  if (start_mode == 0)
+  {
+    digitalWrite(IN_LED,HIGH);
+    delay(500);
+    digitalWrite(IN_LED,LOW);
+    delay(500);
+  }
+  else{
+    if (in_led_status == 1){
+      digitalWrite(IN_LED,HIGH);
+      delay(500);
+      digitalWrite(IN_LED,LOW);
+      in_led_status = 0;
+    }
+  }
 }
